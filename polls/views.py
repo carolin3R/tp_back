@@ -65,7 +65,7 @@ def vote(request, question_id):
             # Handle the case where "choice" key is not present in request.POST
             print("The 'choice' field is missing from the form data.")
         else:
-            selected_choice = question.choice_set.get(pk=(int(choice_id)))
+            selected_choice = question.choice_set.get(pk=choice_id)
             print("choice = ", selected_choice)
         print("does question choice exist", question.choice_set.exists())
         if not question.choice_set.exists():
