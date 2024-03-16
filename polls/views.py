@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import  HttpResponseRedirect, Http404
+from django.http import  HttpResponseRedirect, Http404, HttpResponse
 from .models import Choice, Question
 from django.urls import reverse
 from django.views import generic
@@ -12,6 +12,7 @@ from django.utils import timezone
 from rest_framework.decorators import api_view
 import logging
 from django.views.decorators.csrf import csrf_exempt
+import json
 
 logger = logging.getLogger(__name__)
 @api_view(['GET'])
@@ -56,15 +57,32 @@ def ResultView(request, question_id):
 def vote(request, question_id):
     try:
         question = get_object_or_404(Question, pk=question_id)
+        print("QUESTION IS", question)
+        print("request is", request)
+        choice_id = request.POST.get("choice")
+        print("CHOICE ID IS", choice_id)
+        if choice_id is None:
+            # Handle the case where "choice" key is not present in request.POST
+            print("The 'choice' field is missing from the form data.")
+        else:
+            selected_choice = question.choice_set.get(pk=(int(choice_id)))
+            print("choice = ", selected_choice)
+        print("does question choice exist", question.choice_set.exists())
         if not question.choice_set.exists():
             raise Http404("This question does not have any choices.")
+        print("post request choice is ")
         print(request.POST["choice"])
-        selected_choice = question.choice_set.get(pk=request.POST["choice"])
+        selected_choice = question.choice_set.get(pk=int(request.POST["choice"]))
+        print("choice = ", selected_choice)
     except (KeyError, Choice.DoesNotExist) as e:
+        if isinstance(e, KeyError):
+            print("Key error occurred.")
+        elif isinstance(e, Choice.DoesNotExist):
+            print("Choice does not exist.")
         logger.error(f"Error in vote: {e}")
         return JsonResponse({"error": "You didn't select a choice."}, status=400)
     else:
         selected_choice.votes = F("votes") + 1
         selected_choice.save()
-        return JsonResponse({"success": True, "redirect": reverse("polls:results", args=(question.id,))})
+        return JsonResponse({"success": True, "redirect": reverse("polls:results", args=(question.id))})
     
